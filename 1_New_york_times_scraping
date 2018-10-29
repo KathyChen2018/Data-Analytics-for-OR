@@ -1,0 +1,55 @@
+import requests
+import json
+from bs4 import BeautifulSoup
+import random
+
+year  = 2017
+month = 11
+KEY = # HIDDEN
+url = "https://api.nytimes.com/svc/archive/v1/%d/%d.json?api-key=%s"%(year,month, KEY)
+
+response = requests.get(url)
+
+count = 0 # Debug Purpose
+for doc in response.json()["response"]["docs"]:
+    content = {}
+
+    # Attributes
+    try:
+        content["person"] = doc["byline"]["person"]
+    except:
+        pass
+    content["headline"] = doc["headline"]
+    try:
+        content["abstract"] = doc["abstract"]
+    except:
+        pass
+    content['keywords'] = []
+    for part in doc["keywords"]:
+        content["keywords"].append(part["value"])
+    content["date_time"] = doc["pub_date"]
+    try:
+        content["section"] = doc["section_name"]
+    except:
+        pass
+    content["source"] = doc["source"]
+    content["url"] = doc["web_url"]
+
+    # Text
+    request_page = requests.get(content["url"])
+    results_page = BeautifulSoup(request_page.content,'lxml')
+    texts = results_page.find_all("p",class_ = "story-body-text story-content")
+    content["text"] = ""
+    for text in texts:
+        content["text"] +=  text.get_text() + " "
+    texts = results_page.find_all("p", class_ = "story-body-text")
+    for text in texts:
+        content["text"] +=  text.get_text() + " "
+    
+    filenameroot = doc["pub_date"]
+    filename = ''.join(e for e in filenameroot if e.isalnum())
+    filename += "%d.txt" %random.randint(0,9)
+
+    with open(filename, "w") as f:
+        data = json.dump(content, f)
+    count += 1
