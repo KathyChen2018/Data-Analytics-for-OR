@@ -1,0 +1,39 @@
+from gensim import corpora
+from gensim.parsing.preprocessing import STOPWORDS
+import os
+path = "/Users/jingwenchen/Desktop/DA Project/Glossary/glossary def"
+files = os.listdir(path)[0:]
+glossary_text = []
+for file in files:
+    if not os.path.isdir(file):
+        if str(file) != ".DS_Store":
+            with open("/Users/jingwenchen/Desktop/DA Project/Glossary/glossary def/" + file, 'r') as f:
+                text = f.read()
+                glossary_text.append(text)
+doc_list = glossary_text
+
+documents = [doc for doc in doc_list]
+
+texts = [[word for word in document.lower().split()
+          if word not in STOPWORDS and word.isalnum()]
+         for document in documents]
+dictionary = corpora.Dictionary(texts)
+corpus = [dictionary.doc2bow(text) for text in texts]
+
+from gensim.similarities.docsim import Similarity
+from gensim import corpora, models, similarities
+lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=2)
+
+with open('/Users/jingwenchen/Desktop/DA Project/nyt/20161101T011722Z.txt', 'r') as f:
+    nyt_text = f.read()
+    NY_text = nyt_text.replace('{', ' ')
+bad_chars = ",.’():;-{}"
+for c in bad_chars:
+    test_text = nyt_text.replace(c, ' ')
+doc = test_text
+vec_bow = dictionary.doc2bow(doc.lower().split())
+vec_lsi = lsi[vec_bow]
+index = similarities.MatrixSimilarity(lsi[corpus])
+sims = index[vec_lsi]
+sims = sorted(enumerate(sims), key=lambda item: -item[1])
+sims
